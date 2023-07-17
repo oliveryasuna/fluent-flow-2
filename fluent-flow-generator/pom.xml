@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright 2023 Oliver Yasuna
+  ~
+  ~ Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
+  ~
+  ~ 1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+  ~ 2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation
+  ~     and/or other materials provided with the distribution.
+  ~ 3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote products derived from this software without
+  ~      specific prior written permission.
+  ~
+  ~ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+  ~ IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+  ~ FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+  ~ SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR
+  ~ TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+  -->
+
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+  <modelVersion>4.0.0</modelVersion>
+
+  <!--==================================================
+  ==== Core
+  ==================================================-->
+
+  <parent>
+    <groupId>com.oliveryasuna.fluent-flow-2</groupId>
+    <artifactId>fluent-flow-2-parent</artifactId>
+    <version>1.0.0</version>
+  </parent>
+
+  <artifactId>fluent-flow-2-generator</artifactId>
+  <packaging>jar</packaging>
+
+  <properties/>
+
+  <dependencyManagement/>
+
+  <dependencies>
+    <!--=========================
+    ==== API
+    =========================-->
+
+    <dependency>
+      <groupId>jakarta.servlet</groupId>
+      <artifactId>jakarta.servlet-api</artifactId>
+      <version>6.0.0</version>
+    </dependency>
+
+    <dependency>
+      <groupId>jakarta.validation</groupId>
+      <artifactId>jakarta.validation-api</artifactId>
+      <version>3.0.2</version>
+    </dependency>
+
+    <dependency>
+      <groupId>jakarta.el</groupId>
+      <artifactId>jakarta.el-api</artifactId>
+      <version>5.0.1</version>
+    </dependency>
+
+    <!--=========================
+    ==== Vaadin
+    =========================-->
+
+    <dependency>
+      <groupId>com.vaadin</groupId>
+      <artifactId>vaadin-core</artifactId>
+    </dependency>
+
+    <!--=========================
+    ==== Logging
+    =========================-->
+
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-classic</artifactId>
+      <version>1.4.5</version>
+    </dependency>
+
+    <!--=========================
+    ==== Miscellaneous
+    =========================-->
+
+    <dependency>
+      <groupId>com.github.javaparser</groupId>
+      <artifactId>javaparser-core</artifactId>
+      <version>3.25.1</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.projectlombok</groupId>
+      <artifactId>lombok</artifactId>
+      <version>1.18.26</version>
+    </dependency>
+
+    <dependency>
+      <groupId>com.oliveryasuna</groupId>
+      <artifactId>commons-language</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-lang3</artifactId>
+      <version>3.12.0</version>
+    </dependency>
+
+    <dependency>
+      <groupId>commons-io</groupId>
+      <artifactId>commons-io</artifactId>
+      <version>2.11.0</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.hibernate.validator</groupId>
+      <artifactId>hibernate-validator</artifactId>
+      <version>8.0.0.Final</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.glassfish</groupId>
+      <artifactId>jakarta.el</artifactId>
+      <version>5.0.0-M1</version>
+    </dependency>
+  </dependencies>
+
+  <!--==================================================
+  ==== Build
+  ==================================================-->
+
+  <build>
+    <resources>
+      <resource>
+        <directory>src/main/resources</directory>
+
+        <filtering>true</filtering>
+      </resource>
+    </resources>
+  </build>
+
+  <reporting/>
+
+  <!--==================================================
+  ==== Details
+  ==================================================-->
+
+  <name>${project.groupId}:${project.artifactId}</name>
+  <description/> <!-- TODO. -->
+  <url>https://github.com/oliveryasuna/fluent-flow</url>
+  <inceptionYear>2023</inceptionYear>
+  <licenses>
+    <license>
+      <name>BSD 3-Clause</name>
+      <url>https://opensource.org/licenses/BSD-3-Clause</url>
+      <comments>Copyright 2023 Oliver Yasuna</comments>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+  <organization>
+    <name>Oliver Yasuna</name>
+    <url>https://oliveryasuna.github.io/</url>
+  </organization>
+  <developers>
+    <developer>
+      <id>oliver-yasuna</id>
+
+      <name>Oliver Yasuna</name>
+      <url>https://oliveryasuna.github.io/</url>
+
+      <timezone>America/New_York</timezone>
+    </developer>
+  </developers>
+  <contributors/>
+
+  <!--==================================================
+  ==== Environment
+  ==================================================-->
+
+  <issueManagement>
+    <system>GitHub</system>
+    <url>https://github.com/oliveryasuna/fluent-flow-2/issues</url>
+  </issueManagement>
+  <ciManagement/>
+
+  <mailingLists/>
+
+  <scm>
+    <url>https://github.com/oliveryasuna/fluent-flow-2</url>
+    <connection>scm:git:git://github.com/oliveryasuna/fluent-flow-2.git</connection>
+    <developerConnection>scm:git:git://github.com/oliveryasuna/fluent-flow-2.git</developerConnection>
+  </scm>
+
+  <repositories/>
+  <pluginRepositories/>
+
+  <distributionManagement/>
+
+  <profiles/>
+
+</project>

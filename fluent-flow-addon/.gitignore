@@ -1,0 +1,9 @@
+# Maven
+#--------------------------------------------------
+
+/target/
+
+# Miscellaneous
+#--------------------------------------------------
+
+/src/main/java/com/oliveryasuna/vaadin/fluent/com/vaadin/flow/

@@ -1,0 +1,228 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright 2023 Oliver Yasuna
+  ~
+  ~ Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
+  ~
+  ~ 1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+  ~ 2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation
+  ~     and/or other materials provided with the distribution.
+  ~ 3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote products derived from this software without
+  ~      specific prior written permission.
+  ~
+  ~ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+  ~ IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+  ~ FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+  ~ SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR
+  ~ TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+  -->
+
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+  <modelVersion>4.0.0</modelVersion>
+
+  <!--==================================================
+  ==== Core
+  ==================================================-->
+
+  <parent>
+    <groupId>com.oliveryasuna.fluent-flow-2</groupId>
+    <artifactId>fluent-flow-2-parent</artifactId>
+    <version>1.0.0</version>
+  </parent>
+
+  <groupId>org.vaadin.addons.oliveryasuna</groupId>
+  <artifactId>fluent-flow-2-addon</artifactId>
+  <packaging>jar</packaging>
+
+  <properties/>
+
+  <dependencyManagement/>
+
+  <dependencies>
+    <!--=========================
+    ==== Vaadin
+    =========================-->
+
+    <dependency>
+      <groupId>com.vaadin</groupId>
+      <artifactId>vaadin-core</artifactId>
+
+      <scope>provided</scope>
+    </dependency>
+
+    <!--=========================
+    ==== Miscellaneous
+    =========================-->
+
+    <dependency>
+      <groupId>com.oliveryasuna</groupId>
+      <artifactId>commons-language</artifactId>
+    </dependency>
+  </dependencies>
+
+  <!--==================================================
+  ==== Build
+  ==================================================-->
+
+  <build>
+    <plugins>
+      <!-- Vaadin plugin. -->
+      <plugin>
+        <groupId>com.vaadin</groupId>
+        <artifactId>vaadin-maven-plugin</artifactId>
+      </plugin>
+    </plugins>
+  </build>
+
+  <reporting/>
+
+  <!--==================================================
+  ==== Details
+  ==================================================-->
+
+  <name>Fluent Flow 2</name>
+  <description/> <!-- TODO. -->
+  <url>https://github.com/oliveryasuna/fluent-flow-2</url>
+  <inceptionYear>2023</inceptionYear>
+  <licenses>
+    <license>
+      <name>BSD 3-Clause</name>
+      <url>https://opensource.org/licenses/BSD-3-Clause</url>
+      <comments>Copyright 2023 Oliver Yasuna</comments>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+  <organization>
+    <name>Oliver Yasuna</name>
+    <url>https://oliveryasuna.github.io/</url>
+  </organization>
+  <developers>
+    <developer>
+      <id>oliver-yasuna</id>
+
+      <name>Oliver Yasuna</name>
+      <url>https://oliveryasuna.github.io/</url>
+
+      <timezone>America/New_York</timezone>
+    </developer>
+  </developers>
+  <contributors/>
+
+  <!--==================================================
+  ==== Environment
+  ==================================================-->
+
+  <issueManagement>
+    <system>GitHub</system>
+    <url>https://github.com/oliveryasuna/fluent-flow-2/issues</url>
+  </issueManagement>
+  <ciManagement/>
+
+  <mailingLists/>
+
+  <scm>
+    <url>https://github.com/oliveryasuna/fluent-flow-2</url>
+    <connection>scm:git:git://github.com/oliveryasuna/fluent-flow-2.git</connection>
+    <developerConnection>scm:git:git://github.com/oliveryasuna/fluent-flow-2.git</developerConnection>
+  </scm>
+
+  <repositories/>
+  <pluginRepositories/>
+
+  <distributionManagement/>
+
+  <profiles>
+    <!-- For publishing to the Vaadin Directory. -->
+    <profile>
+      <id>vaadin-directory</id>
+
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-jar-plugin</artifactId>
+
+            <configuration>
+              <archive>
+                <index>true</index>
+
+                <manifest>
+                  <addClasspath>false</addClasspath>
+                  <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+                </manifest>
+                <manifestEntries>
+                  <Vaadin-Package-Version>1</Vaadin-Package-Version>
+                </manifestEntries>
+              </archive>
+            </configuration>
+          </plugin>
+
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-source-plugin</artifactId>
+
+            <executions>
+              <execution>
+                <id>attach-sources</id>
+
+                <phase>verify</phase>
+
+                <goals>
+                  <goal>jar-no-fork</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-javadoc-plugin</artifactId>
+
+            <configuration>
+              <quiet>true</quiet>
+              <doclint>all</doclint>
+            </configuration>
+
+            <executions>
+              <execution>
+                <id>attach-javadocs</id>
+
+                <phase>verify</phase>
+
+                <goals>
+                  <goal>jar</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-assembly-plugin</artifactId>
+
+            <configuration>
+              <appendAssemblyId>false</appendAssemblyId>
+              <descriptors>
+                <descriptor>assembly/assembly.xml</descriptor>
+              </descriptors>
+            </configuration>
+
+            <executions>
+              <execution>
+                <phase>install</phase>
+
+                <goals>
+                  <goal>single</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
+
+</project>
