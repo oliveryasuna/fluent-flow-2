@@ -78,14 +78,16 @@ public final class App {
   }
 
   private static boolean generateClass(final Class<?> sourceClass, final Generator generator) {
-    LOGGER.info("Generating class for \"{}\" using generator \"{}\".", sourceClass.getName(), generator.getName());
+    final String generatorName = generator.getName();
+
+    LOGGER.info("[{}] Generating class for \"{}\".", generatorName, sourceClass.getName());
 
     final InputStream sourceFileInput;
 
     try {
       sourceFileInput = resolveClassSource(sourceClass);
     } catch(final IOException e) {
-      LOGGER.error("Failed to resolve source for \"{}\".", sourceClass.getName(), e);
+      LOGGER.error("[{}] Failed to resolve source for \"{}\".", generatorName, sourceClass.getName(), e);
 
       return false;
     }
@@ -95,7 +97,7 @@ public final class App {
     try {
       sourceFile = StaticJavaParser.parse(sourceFileInput);
     } catch(final ParseProblemException e) {
-      LOGGER.error("Failed to parse source for \"{}\".", sourceClass.getName(), e);
+      LOGGER.error("[{}] Failed to parse source for \"{}\".", generatorName, sourceClass.getName(), e);
 
       return false;
     }
@@ -104,7 +106,8 @@ public final class App {
 
     if(result.hasErrors()) {
       LOGGER.error(
-          "Failed to generate class for \"{}\":\n{}",
+          "[{}] Failed to generate class for \"{}\":\n{}",
+          generatorName,
           sourceClass.getName(),
           result.getErrors()
               .stream()
@@ -118,21 +121,22 @@ public final class App {
     try {
       write(result);
     } catch(final IOException e) {
-      LOGGER.error("Failed to write generated class for \"{}\".", sourceClass.getName(), e);
+      LOGGER.error("[{}] Failed to write generated class for \"{}\".", generatorName, sourceClass.getName(), e);
 
       return false;
     }
 
     if(result.hasWarnings()) {
       LOGGER.warn(
-          "Generated class for \"{}\" with warnings:\n{}",
+          "[{}] Generated class for \"{}\" with warnings:\n{}",
+          generatorName,
           sourceClass.getName(), result.getWarnings()
               .stream()
               .map(value -> "* " + value)
               .collect(Collectors.joining("\n"))
       );
     } else {
-      LOGGER.info("Generated class for \"{}\".", sourceClass.getName());
+      LOGGER.info("[{}] Generated class for \"{}\".", generatorName, sourceClass.getName());
     }
 
     return true;

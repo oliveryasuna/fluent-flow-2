@@ -28,7 +28,6 @@ import com.github.javaparser.ast.body.FieldDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.type.ClassOrInterfaceType;
 import com.github.javaparser.ast.type.TypeParameter;
-import com.oliveryasuna.vaadin.fluent.generator.utils.NodeListUtils;
 import com.oliveryasuna.vaadin.fluent.generator.utils.NodeUtils;
 
 import java.util.ArrayList;
@@ -156,7 +155,7 @@ public final class OutputBuilder {
             .setTypeParameters(typeParameters)
             .setExtendedTypes(extendedTypes)
             .setImplementedTypes(implementedTypes)
-            .setMembers(NodeListUtils.concat(
+            .setMembers(NodeUtils.of(
                 constructors,
                 fields,
                 methods
