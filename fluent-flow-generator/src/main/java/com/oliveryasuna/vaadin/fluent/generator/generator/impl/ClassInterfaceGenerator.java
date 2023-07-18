@@ -163,13 +163,11 @@ public final class ClassInterfaceGenerator extends Generator {
 
   @Override
   public Boolean visit(final MethodDeclaration sourceMethod, final OutputBuilder outputBuilder) {
-    // Skip non-public, static methods, object methods, and those that contain
-    // "$$".
-
-    final String sourceMethodName = sourceMethod.getNameAsString();
-
-    if(!sourceMethod.isPublic() || sourceMethod.isStatic() || sourceMethodName.equals("equals") || sourceMethodName.equals("hashCode")
-        || sourceMethodName.equals("toString") || sourceMethodName.contains("$$")) {
+    if(!canGenerateFluentMethod(
+        sourceMethod,
+        NodeUtils.getParentClass(sourceMethod)
+            .orElseThrow()
+    )) {
       return false;
     }
 

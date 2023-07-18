@@ -167,15 +167,17 @@ public final class InterfaceInterfaceGenerator extends Generator {
 
   @Override
   public Boolean visit(final MethodDeclaration sourceMethod, final OutputBuilder outputBuilder) {
-    final String sourceMethodName = sourceMethod.getNameAsString();
-
-    if(sourceMethod.isStatic() || sourceMethodName.equals("equals") || sourceMethodName.equals("hashCode") || sourceMethodName.equals("toString")
-        || sourceMethodName.contains("$$")) {
+    if(!canGenerateFluentMethod(
+        sourceMethod,
+        NodeUtils.getParentClass(sourceMethod)
+            .orElseThrow()
+    )) {
       return false;
     }
 
     // TODO: For a better approach, see `ClassInterfaceGenerator`.
 
+    final String sourceMethodName = sourceMethod.getNameAsString();
     final NodeList<Parameter> sourceMethodParameters = sourceMethod.getParameters();
 
     final MethodDeclaration generatedMethod = new MethodDeclaration();

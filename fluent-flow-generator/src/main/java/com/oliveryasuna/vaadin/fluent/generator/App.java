@@ -24,10 +24,7 @@ import com.github.javaparser.ast.CompilationUnit;
 import com.oliveryasuna.vaadin.fluent.generator.classfinder.ClassFinder;
 import com.oliveryasuna.vaadin.fluent.generator.generator.Generator;
 import com.oliveryasuna.vaadin.fluent.generator.generator.GeneratorResult;
-import com.oliveryasuna.vaadin.fluent.generator.generator.impl.ClassInterfaceGenerator;
-import com.oliveryasuna.vaadin.fluent.generator.generator.impl.InterfaceBaseGenerator;
-import com.oliveryasuna.vaadin.fluent.generator.generator.impl.InterfaceConcreteGenerator;
-import com.oliveryasuna.vaadin.fluent.generator.generator.impl.InterfaceInterfaceGenerator;
+import com.oliveryasuna.vaadin.fluent.generator.generator.impl.*;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
 
@@ -58,7 +55,8 @@ public final class App {
             // TODO: I need to fix these.
             !clazz.getPackageName().startsWith("com.vaadin.flow.component.grid")
                 && !clazz.getPackageName().startsWith("com.vaadin.flow.component.treegrid")
-                && !clazz.getPackageName().startsWith("com.vaadin.flow.component.combobox"))
+                && !clazz.getPackageName().startsWith("com.vaadin.flow.component.combobox")
+                && !clazz.getPackageName().startsWith("com.vaadin.flow.component.internal"))
         .collect(Collectors.toUnmodifiableSet());
 
     final Set<Class<?>> sourceInterfaces = classes.stream()
@@ -74,6 +72,7 @@ public final class App {
         .collect(Collectors.toUnmodifiableSet());
 
     generateClasses(sourceClasses, new ClassInterfaceGenerator(classes));
+    generateClasses(sourceClasses, new ClassBaseGenerator(classes));
   }
 
   // Static fields

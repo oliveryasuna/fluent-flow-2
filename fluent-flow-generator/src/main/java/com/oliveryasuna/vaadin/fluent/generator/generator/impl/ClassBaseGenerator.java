@@ -41,13 +41,13 @@ import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-public final class InterfaceBaseGenerator extends Generator {
+public final class ClassBaseGenerator extends Generator {
 
   // Constructors
   //--------------------------------------------------
 
-  public InterfaceBaseGenerator(final Set<Class<?>> generatedClasses) {
-    super("interface→base", generatedClasses);
+  public ClassBaseGenerator(final Set<Class<?>> generatedClasses) {
+    super("class→base", generatedClasses);
   }
 
   // Methods
@@ -157,6 +157,14 @@ public final class InterfaceBaseGenerator extends Generator {
 
   @Override
   public Boolean visit(final MethodDeclaration sourceMethod, final OutputBuilder outputBuilder) {
+    if(!canGenerateFluentMethod(
+        sourceMethod,
+        NodeUtils.getParentClass(sourceMethod)
+            .orElseThrow()
+    )) {
+      return false;
+    }
+
     // If the generated method name differs from the source method name, then
     // we need to implement the source method.
 

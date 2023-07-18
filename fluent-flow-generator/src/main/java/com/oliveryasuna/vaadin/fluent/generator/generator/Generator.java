@@ -434,6 +434,27 @@ public abstract class Generator implements GenericVisitor<Boolean, OutputBuilder
     }
   }
 
+  protected boolean canGenerateFluentMethod(final MethodDeclaration sourceMethod, final ClassOrInterfaceDeclaration sourceClass) {
+    // Skip non-public, static methods, object methods, and those that contain
+    // "$$".
+
+    final String sourceMethodName = sourceMethod.getNameAsString();
+
+    if(sourceMethod.isStatic() || sourceMethodName.equals("equals") || sourceMethodName.equals("hashCode") || sourceMethodName.equals("toString")) {
+      return false;
+    }
+
+    if(sourceMethodName.contains("$$")) {
+      return false;
+    }
+
+    if(!sourceClass.isInterface() && !sourceMethod.isPublic()) {
+      return false;
+    }
+
+    return true;
+  }
+
   // Visitors
   //
 
