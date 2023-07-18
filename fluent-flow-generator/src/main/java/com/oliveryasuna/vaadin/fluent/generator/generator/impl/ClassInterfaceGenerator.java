@@ -36,6 +36,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public final class ClassInterfaceGenerator extends Generator {
 
@@ -58,20 +59,20 @@ public final class ClassInterfaceGenerator extends Generator {
   }
 
   @Override
-  protected NodeList<TypeParameter> generateTypeParameters(final ClassOrInterfaceDeclaration sourceClass) {
-    return NodeUtils.of(generateFluentTypeParameters(sourceClass), NodeUtils.copyAll(sourceClass.getTypeParameters()));
+  protected NodeList<TypeParameter> generateTypeParameters(final ClassOrInterfaceDeclaration sourceClass, final OutputBuilder outputBuilder) {
+    return NodeUtils.of(generateFluentTypeParameters(sourceClass, outputBuilder), NodeUtils.copyAll(sourceClass.getTypeParameters()));
   }
 
   @Override
-  protected NodeList<Type> generateTypeArguments(final ClassOrInterfaceDeclaration sourceClass) {
+  protected NodeList<Type> generateTypeArguments(final ClassOrInterfaceDeclaration sourceClass, final OutputBuilder outputBuilder) {
     return NodeUtils.of(generateFluentTypeArguments(sourceClass), NodeUtils.typeArgumentsFromTypeParameters(sourceClass.getTypeParameters()));
   }
 
   @Override
-  protected ClassOrInterfaceType generateSubclassTypeWithTypeArguments(final ClassOrInterfaceDeclaration sourceClass) {
+  protected ClassOrInterfaceType generateSubclassTypeWithTypeArguments(final ClassOrInterfaceDeclaration sourceClass, final OutputBuilder outputBuilder) {
     return new ClassOrInterfaceType()
         .setName(generateInterfaceSimpleName(sourceClass.getNameAsString()))
-        .setTypeArguments(generateTypeArguments(sourceClass));
+        .setTypeArguments(generateTypeArguments(sourceClass, outputBuilder));
   }
 
   @Override
@@ -122,7 +123,8 @@ public final class ClassInterfaceGenerator extends Generator {
 
     // Add extended types.
 
-    for(final ClassOrInterfaceType sourceClassExtendedType : sourceClass.getExtendedTypes()) {
+    for(final ClassOrInterfaceType sourceClassExtendedType : Stream.concat(sourceClass.getExtendedTypes().stream(), sourceClass.getImplementedTypes().stream())
+        .toList()) {
       final String sourceClassExtendedTypeSimpleName = sourceClassExtendedType.getNameAsString();
 
       // We only need to implement generated interfaces.
@@ -191,6 +193,7 @@ public final class ClassInterfaceGenerator extends Generator {
             .map(sourceMethodParameter -> new Parameter()
                 .setFinal(true)
                 .setType(resolveType(sourceMethodParameter.getType(), outputBuilder))
+                .setVarArgs(sourceMethodParameter.isVarArgs())
                 .setName(sourceMethodParameter.getNameAsString()))
             .collect(Collectors.toCollection(NodeList::new)))
         .setThrownExceptions(NodeUtils.copyAll(sourceMethod.getThrownExceptions()))

@@ -48,8 +48,10 @@ public final class OutputBuilder {
   // Fields
   //--------------------------------------------------
 
+  // TODO: Really more of a context variable.
   private final Class<?> sourceClass;
 
+  // TODO: Really more of a context variable.
   private final CompilationUnit sourceFile;
 
   private String packageName;

@@ -64,20 +64,20 @@ public final class InterfaceInterfaceGenerator extends Generator {
   }
 
   @Override
-  protected NodeList<TypeParameter> generateTypeParameters(final ClassOrInterfaceDeclaration sourceClass) {
-    return NodeUtils.of(generateFluentTypeParameters(sourceClass), NodeUtils.copyAll(sourceClass.getTypeParameters()));
+  protected NodeList<TypeParameter> generateTypeParameters(final ClassOrInterfaceDeclaration sourceClass, final OutputBuilder outputBuilder) {
+    return NodeUtils.of(generateFluentTypeParameters(sourceClass, outputBuilder), NodeUtils.copyAll(sourceClass.getTypeParameters()));
   }
 
   @Override
-  protected NodeList<Type> generateTypeArguments(final ClassOrInterfaceDeclaration sourceClass) {
+  protected NodeList<Type> generateTypeArguments(final ClassOrInterfaceDeclaration sourceClass, final OutputBuilder outputBuilder) {
     return NodeUtils.of(generateFluentTypeArguments(sourceClass), NodeUtils.typeArgumentsFromTypeParameters(sourceClass.getTypeParameters()));
   }
 
   @Override
-  protected ClassOrInterfaceType generateSubclassTypeWithTypeArguments(final ClassOrInterfaceDeclaration sourceClass) {
+  protected ClassOrInterfaceType generateSubclassTypeWithTypeArguments(final ClassOrInterfaceDeclaration sourceClass, final OutputBuilder outputBuilder) {
     return new ClassOrInterfaceType()
         .setName(generateInterfaceSimpleName(sourceClass.getNameAsString()))
-        .setTypeArguments(generateTypeArguments(sourceClass));
+        .setTypeArguments(generateTypeArguments(sourceClass, outputBuilder));
   }
 
   @Override
@@ -125,39 +125,72 @@ public final class InterfaceInterfaceGenerator extends Generator {
         generateFluentTypeArguments(sourceClass)
     ));
 
-    // Add extends.
-    sourceClass.getExtendedTypes().stream()
-        .map(sourceClassExtendedType -> {
-          final String sourceClassExtendedTypeName = sourceClassExtendedType.getNameAsString();
+//    // Add extends.
+//    sourceClass.getExtendedTypes().stream()
+//        .map(sourceClassExtendedType -> {
+//          final String sourceClassExtendedTypeName = sourceClassExtendedType.getNameAsString();
+//
+//          final ClassOrInterfaceType generatedClassExtendedType = new ClassOrInterfaceType();
+//
+//          if(hasGeneratedClass(sourceClassExtendedTypeName)) {
+//            final String generatedClassSimpleName = generateInterfaceSimpleName(sourceClassExtendedTypeName);
+//
+//            outputBuilder.addImport(new ImportDeclaration(
+//                getGeneratedClassPackageName(sourceClassExtendedTypeName) + "." + generatedClassSimpleName,
+//                false,
+//                false
+//            ));
+//
+//            generatedClassExtendedType.setName(generatedClassSimpleName);
+//            generatedClassExtendedType.setTypeArguments(NodeUtils.of(
+//                generateFluentTypeArguments(sourceClass),
+//                sourceClassExtendedType.getTypeArguments()
+//                    .orElse(null)
+//            ));
+//          } else {
+//            // Import already added.
+//
+//            generatedClassExtendedType.setName(sourceClassExtendedType.getNameAsString());
+//            generatedClassExtendedType.setTypeArguments(sourceClassExtendedType.getTypeArguments()
+//                .orElse(null));
+//          }
+//
+//          return generatedClassExtendedType;
+//        })
+//        .forEachOrdered(outputBuilder::addExtendedType);
 
-          final ClassOrInterfaceType generatedClassExtendedType = new ClassOrInterfaceType();
+    // Add extended types.
 
-          if(hasGeneratedClass(sourceClassExtendedTypeName)) {
-            final String generatedClassSimpleName = generateInterfaceSimpleName(sourceClassExtendedTypeName);
+    for(final ClassOrInterfaceType sourceClassExtendedType : sourceClass.getExtendedTypes()) {
+      final String sourceClassExtendedTypeSimpleName = sourceClassExtendedType.getNameAsString();
 
-            outputBuilder.addImport(new ImportDeclaration(
-                getGeneratedClassPackageName(sourceClassExtendedTypeName) + "." + generatedClassSimpleName,
-                false,
-                false
-            ));
+      // We only need to implement generated interfaces.
+      if(!hasGeneratedClass(sourceClassExtendedTypeSimpleName)) {
+        continue;
+      }
 
-            generatedClassExtendedType.setName(generatedClassSimpleName);
-            generatedClassExtendedType.setTypeArguments(NodeUtils.of(
-                generateFluentTypeArguments(sourceClass),
-                sourceClassExtendedType.getTypeArguments()
-                    .orElse(null)
-            ));
-          } else {
-            // Import already added.
+      // Get the generated interface name.
 
-            generatedClassExtendedType.setName(sourceClassExtendedType.getNameAsString());
-            generatedClassExtendedType.setTypeArguments(sourceClassExtendedType.getTypeArguments()
-                .orElse(null));
-          }
+      final String generatedInterfaceSimpleName = generateInterfaceSimpleName(sourceClassExtendedTypeSimpleName);
 
-          return generatedClassExtendedType;
-        })
-        .forEachOrdered(outputBuilder::addExtendedType);
+      // Add import.
+
+      outputBuilder.addImport(new ImportDeclaration(
+          getGeneratedClassPackageName(sourceClassExtendedTypeSimpleName) + "." + generatedInterfaceSimpleName,
+          false,
+          false
+      ));
+
+      // Add extended type.
+
+      outputBuilder.addExtendedType(new ClassOrInterfaceType()
+          .setName(generatedInterfaceSimpleName)
+          .setTypeArguments(NodeUtils.of(
+              generateFluentTypeArguments(sourceClass),
+              sourceClassExtendedType.getTypeArguments()
+                  .orElse(null)
+          )));
+    }
 
     sourceClass.getMethods()
         .forEach(sourceMethod -> sourceMethod.accept(this, outputBuilder));
@@ -196,7 +229,8 @@ public final class InterfaceInterfaceGenerator extends Generator {
       final Parameter sourceMethodParameter = sourceMethodParameters.get(i);
 
       generatedMethodParameters.add(NodeUtils.copy(sourceMethodParameter)
-          .setFinal(true));
+          .setFinal(true)
+          .setVarArgs(sourceMethodParameter.isVarArgs()));
 
       // Add package local enum imports.
       // This is because enums are not included in "*" imports.

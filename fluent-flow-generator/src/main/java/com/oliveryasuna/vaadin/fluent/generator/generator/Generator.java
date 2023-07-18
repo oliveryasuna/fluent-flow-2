@@ -38,6 +38,8 @@ import org.slf4j.LoggerFactory;
 import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 // TODO: This class is not up-to-date with the coding standards I followed in
@@ -55,6 +57,10 @@ public abstract class Generator implements GenericVisitor<Boolean, OutputBuilder
   protected static final String DEFAULT_WRAPPED_TYPE_PARAMETER_NAME = "__T";
 
   protected static final String DEFAULT_SUBCLASS_TYPE_PARAMETER_NAME = "__F";
+
+  protected static final Pattern VALUE_CHANGE_LISTENER_PATTERN_1 = Pattern.compile("ValueChangeListener<\\? super ComponentValueChangeEvent<(.+), ?(.+)>>");
+
+  protected static final Pattern VALUE_CHANGE_LISTENER_PATTERN_2 = Pattern.compile("ValueChangeListener<ComponentValueChangeEvent<(.+), ?(.+)>>");
 
   // Constructors
   //--------------------------------------------------
@@ -133,10 +139,10 @@ public abstract class Generator implements GenericVisitor<Boolean, OutputBuilder
    *
    * @return The type parameters for the generated class.
    */
-  protected abstract NodeList<TypeParameter> generateTypeParameters(final ClassOrInterfaceDeclaration sourceClass);
+  protected abstract NodeList<TypeParameter> generateTypeParameters(final ClassOrInterfaceDeclaration sourceClass, final OutputBuilder outputBuilder);
 
-  protected NodeList<TypeParameter> generateFluentTypeParameters(final ClassOrInterfaceDeclaration sourceClass) {
-    return NodeList.nodeList(generateWrappedTypeParameter(sourceClass), generateSubclassTypeParameter(sourceClass));
+  protected NodeList<TypeParameter> generateFluentTypeParameters(final ClassOrInterfaceDeclaration sourceClass, final OutputBuilder outputBuilder) {
+    return NodeList.nodeList(generateWrappedTypeParameter(sourceClass, outputBuilder), generateSubclassTypeParameter(sourceClass, outputBuilder));
   }
 
   /**
@@ -146,8 +152,11 @@ public abstract class Generator implements GenericVisitor<Boolean, OutputBuilder
    *
    * @return The type parameter for the source class.
    */
-  protected TypeParameter generateWrappedTypeParameter(final ClassOrInterfaceDeclaration sourceClass) {
-    return new TypeParameter(getWrappedTypeParameterName(), NodeList.nodeList(NodeUtils.typeWithTypeArguments(sourceClass)));
+  protected TypeParameter generateWrappedTypeParameter(final ClassOrInterfaceDeclaration sourceClass, final OutputBuilder outputBuilder) {
+    return new TypeParameter(
+        getWrappedTypeParameterName(),
+        NodeList.nodeList(resolveType(NodeUtils.typeWithTypeArguments(sourceClass), outputBuilder).asClassOrInterfaceType())
+    );
   }
 
   /**
@@ -157,8 +166,8 @@ public abstract class Generator implements GenericVisitor<Boolean, OutputBuilder
    *
    * @return The type parameter for specifying the subclass of the generated class.
    */
-  protected TypeParameter generateSubclassTypeParameter(final ClassOrInterfaceDeclaration sourceClass) {
-    return new TypeParameter(getSubclassTypeParameterName(), NodeList.nodeList(generateSubclassTypeWithTypeArguments(sourceClass)));
+  protected TypeParameter generateSubclassTypeParameter(final ClassOrInterfaceDeclaration sourceClass, final OutputBuilder outputBuilder) {
+    return new TypeParameter(getSubclassTypeParameterName(), NodeList.nodeList(generateSubclassTypeWithTypeArguments(sourceClass, outputBuilder)));
   }
 
   /**
@@ -168,7 +177,7 @@ public abstract class Generator implements GenericVisitor<Boolean, OutputBuilder
    *
    * @return The type arguments for the generated class.
    */
-  protected abstract NodeList<Type> generateTypeArguments(ClassOrInterfaceDeclaration sourceClass);
+  protected abstract NodeList<Type> generateTypeArguments(ClassOrInterfaceDeclaration sourceClass, OutputBuilder outputBuilder);
 
   protected NodeList<Type> generateFluentTypeArguments(final ClassOrInterfaceDeclaration sourceClass) {
     return NodeList.nodeList(generateWrappedTypeArgument(sourceClass), generateSubclassTypeArgument(sourceClass));
@@ -203,7 +212,7 @@ public abstract class Generator implements GenericVisitor<Boolean, OutputBuilder
    *
    * @return The type of the subclass type with its type arguments.
    */
-  protected abstract ClassOrInterfaceType generateSubclassTypeWithTypeArguments(final ClassOrInterfaceDeclaration sourceClass);
+  protected abstract ClassOrInterfaceType generateSubclassTypeWithTypeArguments(ClassOrInterfaceDeclaration sourceClass, OutputBuilder outputBuilder);
 
   protected abstract String generateJavadoc(final ClassOrInterfaceDeclaration sourceClass);
 
@@ -410,25 +419,63 @@ public abstract class Generator implements GenericVisitor<Boolean, OutputBuilder
       return NodeUtils.copy(type);
     }
 
-    final String typeName = objectType.getNameAsString();
+    final String typeSimpleName = objectType.getNameAsString();
     final Class<?> sourceClass = outputBuilder.getSourceClass();
 
     // Handle special cases.
 
     final String sourceClassSimpleName = sourceClass.getSimpleName();
 
-    if(typeName.equals("Alignment") && (sourceClassSimpleName.equals("VerticalLayout") || sourceClassSimpleName.equals("HorizontalLayout"))) {
+    if((typeSimpleName.equals("Alignment") || typeSimpleName.equals("JustifyContentMode"))
+        && (sourceClassSimpleName.equals("VerticalLayout") || sourceClassSimpleName.equals("HorizontalLayout"))) {
+      outputBuilder.addImport(new ImportDeclaration("com.vaadin.flow.component.orderedlayout.FlexComponent", false, false));
+
       return new ClassOrInterfaceType()
-          .setName("FlexComponent.Alignment");
+          .setName("FlexComponent." + typeSimpleName);
+    }
+
+    if(typeSimpleName.equals("WebComponentExporterFactory<C>")) {
+      return new ClassOrInterfaceType()
+          .setName("com.vaadin.flow.component.WebComponentExporterFactory<C>");
+    }
+
+    final String typeName = objectType.asString();
+
+    final Matcher matcher = VALUE_CHANGE_LISTENER_PATTERN_1.matcher(typeName);
+
+    if(matcher.matches()) {
+      outputBuilder.addImport(new ImportDeclaration("com.vaadin.flow.component.HasValue", false, false));
+      outputBuilder.addImport(new ImportDeclaration("com.vaadin.flow.component.AbstractField", false, false));
+
+      return new ClassOrInterfaceType()
+          .setName(String.format(
+              "HasValue.ValueChangeListener<? super AbstractField.ComponentValueChangeEvent<%s, %s>>",
+              matcher.group(1),
+              matcher.group(2)
+          ));
+    }
+
+    final Matcher matcher2 = VALUE_CHANGE_LISTENER_PATTERN_2.matcher(typeName);
+
+    if(matcher2.matches()) {
+      outputBuilder.addImport(new ImportDeclaration("com.vaadin.flow.component.HasValue", false, false));
+      outputBuilder.addImport(new ImportDeclaration("com.vaadin.flow.component.AbstractField", false, false));
+
+      return new ClassOrInterfaceType()
+          .setName(String.format(
+              "HasValue.ValueChangeListener<AbstractField.ComponentValueChangeEvent<%s, %s>>",
+              matcher2.group(1),
+              matcher2.group(2)
+          ));
     }
 
     // Try to find inner class.
 
     try {
-      Class.forName(sourceClass.getName() + "$" + typeName);
+      Class.forName(sourceClass.getName() + "$" + typeSimpleName);
 
       return new ClassOrInterfaceType()
-          .setName(sourceClassSimpleName + "." + typeName);
+          .setName(sourceClassSimpleName + "." + typeSimpleName);
     } catch(final ClassNotFoundException ignored) {
       return NodeUtils.copy(type);
     }
@@ -577,7 +624,7 @@ public abstract class Generator implements GenericVisitor<Boolean, OutputBuilder
     outputBuilder.setClassName(generateClassSimpleName(sourceClass));
 
     // Add type parameters.
-    outputBuilder.getTypeParameters().addAll(generateTypeParameters(sourceClass));
+    outputBuilder.getTypeParameters().addAll(generateTypeParameters(sourceClass, outputBuilder));
 
     return true;
   }

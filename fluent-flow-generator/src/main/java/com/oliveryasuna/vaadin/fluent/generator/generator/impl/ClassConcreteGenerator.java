@@ -22,9 +22,7 @@ import com.github.javaparser.ast.Modifier;
 import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.ConstructorDeclaration;
-import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.body.Parameter;
-import com.github.javaparser.ast.nodeTypes.NodeWithSimpleName;
 import com.github.javaparser.ast.stmt.BlockStmt;
 import com.github.javaparser.ast.type.ClassOrInterfaceType;
 import com.github.javaparser.ast.type.Type;
@@ -41,13 +39,13 @@ import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-public final class InterfaceBaseGenerator extends Generator {
+public final class ClassConcreteGenerator extends Generator {
 
   // Constructors
   //--------------------------------------------------
 
-  public InterfaceBaseGenerator(final Set<Class<?>> generatedClasses) {
-    super("interface→base", generatedClasses);
+  public ClassConcreteGenerator(final Set<Class<?>> generatedClasses) {
+    super("class→concrete", generatedClasses);
   }
 
   // Methods
@@ -56,49 +54,50 @@ public final class InterfaceBaseGenerator extends Generator {
   // Generation
   //
 
-
   @Override
   protected String generateClassSimpleName(final ClassOrInterfaceDeclaration sourceClass) {
-    return generateBaseClassSimpleName(sourceClass.getNameAsString());
+    return generateConcreteClassSimpleName(sourceClass.getNameAsString());
   }
 
   @Override
   protected NodeList<TypeParameter> generateTypeParameters(final ClassOrInterfaceDeclaration sourceClass, final OutputBuilder outputBuilder) {
-    return NodeUtils.of(generateFluentTypeParameters(sourceClass, outputBuilder), NodeUtils.copyAll(sourceClass.getTypeParameters()));
+    return NodeUtils.copyAll(sourceClass.getTypeParameters());
   }
 
   @Override
   protected NodeList<Type> generateTypeArguments(final ClassOrInterfaceDeclaration sourceClass, final OutputBuilder outputBuilder) {
-    return NodeUtils.of(generateFluentTypeArguments(sourceClass), NodeUtils.typeArgumentsFromTypeParameters(sourceClass.getTypeParameters()));
+    final NodeList<Type> generatedClassTypeArguments = NodeUtils.typeArgumentsFromTypeParameters(sourceClass.getTypeParameters());
+
+    return NodeUtils.of(
+        NodeUtils.typeWithTypeArguments(sourceClass),
+        new ClassOrInterfaceType()
+            .setName(generateClassSimpleName(sourceClass))
+            .setTypeArguments(generatedClassTypeArguments.isNonEmpty() ? generatedClassTypeArguments : null),
+        generatedClassTypeArguments
+    );
   }
 
   @Override
   protected ClassOrInterfaceType generateSubclassTypeWithTypeArguments(final ClassOrInterfaceDeclaration sourceClass, final OutputBuilder outputBuilder) {
-    return new ClassOrInterfaceType()
-        .setName(generateBaseClassSimpleName(sourceClass.getNameAsString()))
-        .setTypeArguments(generateTypeArguments(sourceClass, outputBuilder));
+    throw new IllegalStateException("This should never be called.");
   }
 
   @Override
   protected String generateJavadoc(final ClassOrInterfaceDeclaration sourceClass) {
     return """
-        Fluent base class for {@link %s}.
+        Fluent concrete class for {@link %s}.
         <p>
         THIS IS A GENERATED FILE.
         <p>
         Date: %s<br/>
         Vaadin: %s
 
-        @param <%s> The type of the wrapped object.
-        @param <%s> The type of the factory.
         %s
         @author Oliver Yasuna"""
         .formatted(
             sourceClass.getNameAsString(),
             LocalDate.now().format(DATE_TIME_FORMATTER),
             Config.getVaadinVersion(),
-            getWrappedTypeParameterName(),
-            getSubclassTypeParameterName(),
             Optional.ofNullable(generateWrappedTypeParametersJavadoc(sourceClass))
                 .filter(Predicate.not(String::isEmpty))
                 .map(value -> value + "\n")
@@ -115,26 +114,13 @@ public final class InterfaceBaseGenerator extends Generator {
       return false;
     }
 
-    // Make abstract.
-
-    outputBuilder.addClassModifier(Modifier.abstractModifier());
-
-    // Extend `FluentFactory`.
-
-    outputBuilder.addExtendedType(resolveType(
-        new ClassOrInterfaceType()
-            .setName(Config.getFluentFactoryClass().getSimpleName())
-            .setTypeArguments(generateFluentTypeArguments(sourceClass)),
-        outputBuilder
-    ).asClassOrInterfaceType());
-
-    // Implement interface variant.
+    // Extend the base class.
 
     final String sourceClassSimpleName = sourceClass.getNameAsString();
 
-    outputBuilder.addImplementedType(resolveType(
+    outputBuilder.addExtendedType(resolveType(
         new ClassOrInterfaceType()
-            .setName(generateInterfaceSimpleName(sourceClassSimpleName))
+            .setName(generateBaseClassSimpleName(sourceClassSimpleName))
             .setTypeArguments(generateTypeArguments(sourceClass, outputBuilder)),
         outputBuilder
     ).asClassOrInterfaceType());
@@ -147,65 +133,56 @@ public final class InterfaceBaseGenerator extends Generator {
         .setPublic(true)
         .setName(generateClassSimpleName(sourceClass))
         .addParameter(new Parameter()
-            .setFinal(true)
-            .setType(getWrappedTypeParameterName())
+            .addModifier(Modifier.Keyword.FINAL)
+            .setType(NodeUtils.typeWithTypeArguments(sourceClass))
             .setName(parameterName))
         .setBody(new BlockStmt()
             .addStatement(String.format("super(%s);", parameterName))));
 
-    // Visit methods.
+    // Visit constructors.
 
-    sourceClass.getMethods()
-        .forEach(sourceClassMethod -> sourceClassMethod.accept(this, outputBuilder));
+    if(!sourceClass.isAbstract()) {
+      sourceClass.getConstructors()
+          .forEach(constructor -> constructor.accept(this, outputBuilder));
+    }
 
     return true;
   }
 
   @Override
-  public Boolean visit(final MethodDeclaration sourceMethod, final OutputBuilder outputBuilder) {
-    if(!canGenerateFluentMethod(
-        sourceMethod,
-        NodeUtils.getParentClass(sourceMethod)
-            .orElseThrow()
-    )) {
+  public Boolean visit(final ConstructorDeclaration sourceConstructor, final OutputBuilder outputBuilder) {
+    // Only add public constructors.
+
+    if(!sourceConstructor.isPublic()) {
       return false;
     }
 
-    // If the generated method name differs from the source method name, then
-    // we need to implement the source method.
+    // Add constructor.
 
-    final String sourceMethodName = sourceMethod.getNameAsString();
-    final String generatedMethodName = generateFluentMethodName(
-        sourceMethodName,
-        NodeUtils.getParentClass(sourceMethod)
-            .orElseThrow()
-    );
-
-    if(sourceMethodName.equals(generatedMethodName)) {
-      return false;
-    }
-
-    final NodeList<Parameter> generatedMethodParameters = sourceMethod.getParameters().stream()
+    final NodeList<Parameter> generatedConstructorParameters = sourceConstructor.getParameters().stream()
         .map(sourceMethodParameter -> new Parameter()
             .setFinal(true)
-            .setType(sourceMethodParameter.getTypeAsString())
+            .setType(resolveType(sourceMethodParameter.getType(), outputBuilder))
+            .setVarArgs(sourceMethodParameter.isVarArgs())
             .setName(sourceMethodParameter.getNameAsString()))
         .collect(Collectors.toCollection(NodeList::new));
 
-    outputBuilder.addMethod(new MethodDeclaration()
+    final ClassOrInterfaceDeclaration sourceClass = NodeUtils.getParentClass(sourceConstructor)
+        .orElseThrow();
+
+    outputBuilder.addConstructor(new ConstructorDeclaration()
         .setPublic(true)
-        .setTypeParameters(NodeUtils.copyAll(sourceMethod.getTypeParameters()))
-        .setType(sourceMethod.getTypeAsString())
-        .setName(sourceMethodName)
-        .setParameters(generatedMethodParameters)
+        .setName(generateClassSimpleName(sourceClass))
+        .setParameters(generatedConstructorParameters)
         .setBody(new BlockStmt()
             .addStatement(String.format(
-                "return get().%s(%s);",
-                sourceMethodName,
-                generatedMethodParameters.stream()
-                    .map(NodeWithSimpleName::getNameAsString)
-                    .collect(Collectors.joining(", "))
-            ))));
+                    "this(new %s(%s));",
+                    sourceClass.getNameAsString() + (sourceClass.getTypeParameters().isNonEmpty() ? "<>" : ""),
+                    generatedConstructorParameters.stream()
+                        .map(Parameter::getNameAsString)
+                        .collect(Collectors.joining(", "))
+                )
+            )));
 
     return true;
   }

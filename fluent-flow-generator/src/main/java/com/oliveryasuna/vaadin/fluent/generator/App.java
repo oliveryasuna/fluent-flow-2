@@ -73,6 +73,7 @@ public final class App {
 
     generateClasses(sourceClasses, new ClassInterfaceGenerator(classes));
     generateClasses(sourceClasses, new ClassBaseGenerator(classes));
+    generateClasses(sourceClasses, new ClassConcreteGenerator(classes));
   }
 
   // Static fields

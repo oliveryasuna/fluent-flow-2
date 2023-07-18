@@ -68,12 +68,20 @@ public final class NodeUtils {
   }
 
   public static <NODE extends Node> NodeList<NODE> copyAll(final NodeList<NODE> nodes) {
+    if(nodes == null) {
+      return null;
+    }
+
     return nodes.stream()
         .map(NodeUtils::copy)
         .collect(Collectors.toCollection(NodeList::new));
   }
 
   public static <NODE extends Node> NODE copy(final NODE node) {
+    if(node == null) {
+      return null;
+    }
+
     return (NODE)node.clone();
   }
 

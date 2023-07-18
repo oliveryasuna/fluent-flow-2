@@ -59,25 +59,28 @@ public final class InterfaceConcreteGenerator extends Generator {
   }
 
   @Override
-  protected NodeList<TypeParameter> generateTypeParameters(final ClassOrInterfaceDeclaration sourceClass) {
+  protected NodeList<TypeParameter> generateTypeParameters(final ClassOrInterfaceDeclaration sourceClass, final OutputBuilder outputBuilder) {
     return NodeUtils.copyAll(sourceClass.getTypeParameters());
   }
 
   @Override
-  protected NodeList<Type> generateTypeArguments(final ClassOrInterfaceDeclaration sourceClass) {
+  protected NodeList<Type> generateTypeArguments(final ClassOrInterfaceDeclaration sourceClass, final OutputBuilder outputBuilder) {
     final NodeList<Type> generatedClassTypeArguments = NodeUtils.typeArgumentsFromTypeParameters(sourceClass.getTypeParameters());
 
     return NodeUtils.of(
         NodeUtils.typeWithTypeArguments(sourceClass),
-        new ClassOrInterfaceType()
-            .setName(generateClassSimpleName(sourceClass))
-            .setTypeArguments(generatedClassTypeArguments.isNonEmpty() ? generatedClassTypeArguments : null),
+        resolveType(
+            new ClassOrInterfaceType()
+                .setName(generateClassSimpleName(sourceClass))
+                .setTypeArguments(generatedClassTypeArguments.isNonEmpty() ? generatedClassTypeArguments : null),
+            outputBuilder
+        ),
         generatedClassTypeArguments
     );
   }
 
   @Override
-  protected ClassOrInterfaceType generateSubclassTypeWithTypeArguments(final ClassOrInterfaceDeclaration sourceClass) {
+  protected ClassOrInterfaceType generateSubclassTypeWithTypeArguments(final ClassOrInterfaceDeclaration sourceClass, final OutputBuilder outputBuilder) {
     throw new IllegalStateException("This should never be called.");
   }
 
@@ -117,9 +120,12 @@ public final class InterfaceConcreteGenerator extends Generator {
 
     final String sourceClassSimpleName = sourceClass.getNameAsString();
 
-    outputBuilder.addExtendedType(new ClassOrInterfaceType()
-        .setName(generateBaseClassSimpleName(sourceClassSimpleName))
-        .setTypeArguments(generateTypeArguments(sourceClass)));
+    outputBuilder.addExtendedType(resolveType(
+        new ClassOrInterfaceType()
+            .setName(generateBaseClassSimpleName(sourceClassSimpleName))
+            .setTypeArguments(generateTypeArguments(sourceClass, outputBuilder)),
+        outputBuilder
+    ).asClassOrInterfaceType());
 
     // Add constructor.
 

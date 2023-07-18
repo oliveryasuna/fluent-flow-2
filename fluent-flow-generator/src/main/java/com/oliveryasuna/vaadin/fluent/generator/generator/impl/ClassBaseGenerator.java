@@ -18,6 +18,7 @@
 
 package com.oliveryasuna.vaadin.fluent.generator.generator.impl;
 
+import com.github.javaparser.ast.ImportDeclaration;
 import com.github.javaparser.ast.Modifier;
 import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
@@ -63,20 +64,20 @@ public final class ClassBaseGenerator extends Generator {
   }
 
   @Override
-  protected NodeList<TypeParameter> generateTypeParameters(final ClassOrInterfaceDeclaration sourceClass) {
-    return NodeUtils.of(generateFluentTypeParameters(sourceClass), NodeUtils.copyAll(sourceClass.getTypeParameters()));
+  protected NodeList<TypeParameter> generateTypeParameters(final ClassOrInterfaceDeclaration sourceClass, final OutputBuilder outputBuilder) {
+    return NodeUtils.of(generateFluentTypeParameters(sourceClass, outputBuilder), NodeUtils.copyAll(sourceClass.getTypeParameters()));
   }
 
   @Override
-  protected NodeList<Type> generateTypeArguments(final ClassOrInterfaceDeclaration sourceClass) {
+  protected NodeList<Type> generateTypeArguments(final ClassOrInterfaceDeclaration sourceClass, final OutputBuilder outputBuilder) {
     return NodeUtils.of(generateFluentTypeArguments(sourceClass), NodeUtils.typeArgumentsFromTypeParameters(sourceClass.getTypeParameters()));
   }
 
   @Override
-  protected ClassOrInterfaceType generateSubclassTypeWithTypeArguments(final ClassOrInterfaceDeclaration sourceClass) {
+  protected ClassOrInterfaceType generateSubclassTypeWithTypeArguments(final ClassOrInterfaceDeclaration sourceClass, final OutputBuilder outputBuilder) {
     return new ClassOrInterfaceType()
         .setName(generateBaseClassSimpleName(sourceClass.getNameAsString()))
-        .setTypeArguments(generateTypeArguments(sourceClass));
+        .setTypeArguments(generateTypeArguments(sourceClass, outputBuilder));
   }
 
   @Override
@@ -119,19 +120,70 @@ public final class ClassBaseGenerator extends Generator {
 
     outputBuilder.addClassModifier(Modifier.abstractModifier());
 
-    // Extend `FluentFactory`.
+    // Add extended type.
 
-    outputBuilder.addExtendedType(new ClassOrInterfaceType()
-        .setName(Config.getFluentFactoryClass().getSimpleName())
-        .setTypeArguments(generateFluentTypeArguments(sourceClass)));
+    final NodeList<ClassOrInterfaceType> sourceClassExtendedTypes = sourceClass.getExtendedTypes();
+
+    if(sourceClassExtendedTypes.isEmpty()) {
+      // Extend `FluentFactory`.
+
+      outputBuilder.addExtendedType(resolveType(
+          new ClassOrInterfaceType()
+              .setName(Config.getFluentFactoryClass().getSimpleName())
+              .setTypeArguments(generateFluentTypeArguments(sourceClass)),
+          outputBuilder
+      ).asClassOrInterfaceType());
+    } else {
+      final ClassOrInterfaceType sourceClassExtendedType = sourceClassExtendedTypes.get(0);
+      final String sourceClassExtendedTypeSimpleName = sourceClassExtendedType.getNameAsString();
+
+      if(hasGeneratedClass(sourceClassExtendedTypeSimpleName)) {
+        // Extend the fluent variant of the extended type.
+
+        final String generatedExtendedTypeSimpleName = generateBaseClassSimpleName(sourceClassExtendedTypeSimpleName);
+
+        outputBuilder.addExtendedType(resolveType(
+            new ClassOrInterfaceType()
+                .setName(generatedExtendedTypeSimpleName)
+                .setTypeArguments(NodeUtils.of(
+                    generateFluentTypeArguments(sourceClass),
+                    NodeUtils.copyAll(sourceClassExtendedType.getTypeArguments()
+                        .orElse(null))
+                )),
+            outputBuilder
+        ).asClassOrInterfaceType());
+
+        // Add the import for it.
+
+        outputBuilder.addImport(new ImportDeclaration(
+            generatePackageName(outputBuilder.getSourceClass().getSuperclass().getPackageName()) + "." + generatedExtendedTypeSimpleName,
+            false,
+            false
+        ));
+      } else {
+        // Extend `FluentFactory`.
+
+        outputBuilder.addExtendedType(resolveType(
+            new ClassOrInterfaceType()
+                .setName(Config.getFluentFactoryClass().getSimpleName())
+                .setTypeArguments(generateFluentTypeArguments(sourceClass)),
+            outputBuilder
+        ).asClassOrInterfaceType());
+
+        outputBuilder.addGenerationWarning(String.format("Extended type \"%s\" is not a generated class.", sourceClassExtendedTypeSimpleName));
+      }
+    }
 
     // Implement interface variant.
 
     final String sourceClassSimpleName = sourceClass.getNameAsString();
 
-    outputBuilder.addImplementedType(new ClassOrInterfaceType()
-        .setName(generateInterfaceSimpleName(sourceClassSimpleName))
-        .setTypeArguments(generateTypeArguments(sourceClass)));
+    outputBuilder.addImplementedType(resolveType(
+        new ClassOrInterfaceType()
+            .setName(generateInterfaceSimpleName(sourceClassSimpleName))
+            .setTypeArguments(generateTypeArguments(sourceClass, outputBuilder)),
+        outputBuilder
+    ).asClassOrInterfaceType());
 
     // Add constructor.
 
@@ -183,6 +235,7 @@ public final class ClassBaseGenerator extends Generator {
         .map(sourceMethodParameter -> new Parameter()
             .setFinal(true)
             .setType(sourceMethodParameter.getTypeAsString())
+            .setVarArgs(sourceMethodParameter.isVarArgs())
             .setName(sourceMethodParameter.getNameAsString()))
         .collect(Collectors.toCollection(NodeList::new));
 
