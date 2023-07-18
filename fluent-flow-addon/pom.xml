@@ -34,7 +34,7 @@
   </parent>
 
   <groupId>org.vaadin.addons.oliveryasuna</groupId>
-  <artifactId>fluent-flow-2-addon</artifactId>
+  <artifactId>fluent-flow-2</artifactId>
   <packaging>jar</packaging>
 
   <properties/>
