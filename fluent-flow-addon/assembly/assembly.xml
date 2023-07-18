@@ -35,8 +35,8 @@
       <directory>..</directory>
 
       <includes>
-        <include>../LICENSE.txt</include>
-        <include>../README.md</include>
+        <include>../../LICENSE.txt</include>
+        <include>../../README.md</include>
       </includes>
     </fileSet>
 
