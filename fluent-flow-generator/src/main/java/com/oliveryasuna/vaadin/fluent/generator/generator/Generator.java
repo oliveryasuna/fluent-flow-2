@@ -439,6 +439,11 @@ public abstract class Generator implements GenericVisitor<Boolean, OutputBuilder
           .setName("com.vaadin.flow.component.WebComponentExporterFactory<C>");
     }
 
+    if(typeSimpleName.equals("IconFactory")) {
+      return new ClassOrInterfaceType()
+          .setName("com.vaadin.flow.component.icon.IconFactory");
+    }
+
     final String typeName = objectType.asString();
 
     final Matcher matcher = VALUE_CHANGE_LISTENER_PATTERN_1.matcher(typeName);

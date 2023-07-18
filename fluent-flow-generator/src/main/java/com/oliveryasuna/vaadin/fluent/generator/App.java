@@ -56,7 +56,9 @@ public final class App {
             !clazz.getPackageName().startsWith("com.vaadin.flow.component.grid")
                 && !clazz.getPackageName().startsWith("com.vaadin.flow.component.treegrid")
                 && !clazz.getPackageName().startsWith("com.vaadin.flow.component.combobox")
-                && !clazz.getPackageName().startsWith("com.vaadin.flow.component.internal"))
+                && !clazz.getPackageName().startsWith("com.vaadin.flow.component.internal")
+                && !clazz.getPackageName().startsWith("com.vaadin.flow.component.littemplate")
+                && !clazz.getPackageName().startsWith("com.vaadin.flow.component.upload"))
         .collect(Collectors.toUnmodifiableSet());
 
     final Set<Class<?>> sourceInterfaces = classes.stream()
