@@ -157,6 +157,14 @@ public final class InterfaceBaseGenerator extends Generator {
 
   @Override
   public Boolean visit(final MethodDeclaration sourceMethod, final OutputBuilder outputBuilder) {
+    if(!canGenerateFluentMethod(
+        sourceMethod,
+        NodeUtils.getParentClass(sourceMethod)
+            .orElseThrow()
+    )) {
+      return false;
+    }
+
     // If the generated method name differs from the source method name, then
     // we need to implement the source method.
 
