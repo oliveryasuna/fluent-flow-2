@@ -50,6 +50,22 @@
   <dependencyManagement>
     <dependencies>
       <!--=========================
+      ==== API
+      =========================-->
+
+      <dependency>
+        <groupId>jakarta.servlet</groupId>
+        <artifactId>jakarta.servlet-api</artifactId>
+        <version>6.0.0</version>
+      </dependency>
+
+      <dependency>
+        <groupId>jakarta.validation</groupId>
+        <artifactId>jakarta.validation-api</artifactId>
+        <version>3.0.2</version>
+      </dependency>
+
+      <!--=========================
       ==== Vaadin
       =========================-->
 
@@ -69,7 +85,7 @@
       <dependency>
         <groupId>com.oliveryasuna</groupId>
         <artifactId>commons-language</artifactId>
-        <version>6.0.0</version>
+        <version>6.1.0</version>
       </dependency>
     </dependencies>
   </dependencyManagement>

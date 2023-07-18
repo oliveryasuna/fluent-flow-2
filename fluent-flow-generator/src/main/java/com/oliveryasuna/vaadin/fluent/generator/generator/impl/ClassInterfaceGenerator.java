@@ -18,14 +18,11 @@
 
 package com.oliveryasuna.vaadin.fluent.generator.generator.impl;
 
-import com.github.javaparser.ast.Modifier;
+import com.github.javaparser.ast.ImportDeclaration;
 import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
-import com.github.javaparser.ast.body.ConstructorDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.body.Parameter;
-import com.github.javaparser.ast.nodeTypes.NodeWithSimpleName;
-import com.github.javaparser.ast.stmt.BlockStmt;
 import com.github.javaparser.ast.type.ClassOrInterfaceType;
 import com.github.javaparser.ast.type.Type;
 import com.github.javaparser.ast.type.TypeParameter;
@@ -33,7 +30,6 @@ import com.oliveryasuna.vaadin.fluent.generator.Config;
 import com.oliveryasuna.vaadin.fluent.generator.generator.Generator;
 import com.oliveryasuna.vaadin.fluent.generator.generator.OutputBuilder;
 import com.oliveryasuna.vaadin.fluent.generator.utils.NodeUtils;
-import org.apache.commons.lang3.StringUtils;
 
 import java.time.LocalDate;
 import java.util.Optional;
@@ -41,13 +37,13 @@ import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-public final class InterfaceBaseGenerator extends Generator {
+public final class ClassInterfaceGenerator extends Generator {
 
   // Constructors
   //--------------------------------------------------
 
-  public InterfaceBaseGenerator(final Set<Class<?>> generatedClasses) {
-    super("interface→base", generatedClasses);
+  public ClassInterfaceGenerator(final Set<Class<?>> generatedClasses) {
+    super("class→interface", generatedClasses);
   }
 
   // Methods
@@ -56,10 +52,9 @@ public final class InterfaceBaseGenerator extends Generator {
   // Generation
   //
 
-
   @Override
   protected String generateClassSimpleName(final ClassOrInterfaceDeclaration sourceClass) {
-    return generateBaseClassSimpleName(sourceClass.getNameAsString());
+    return generateInterfaceSimpleName(sourceClass.getNameAsString());
   }
 
   @Override
@@ -75,14 +70,14 @@ public final class InterfaceBaseGenerator extends Generator {
   @Override
   protected ClassOrInterfaceType generateSubclassTypeWithTypeArguments(final ClassOrInterfaceDeclaration sourceClass) {
     return new ClassOrInterfaceType()
-        .setName(generateBaseClassSimpleName(sourceClass.getNameAsString()))
+        .setName(generateInterfaceSimpleName(sourceClass.getNameAsString()))
         .setTypeArguments(generateTypeArguments(sourceClass));
   }
 
   @Override
   protected String generateJavadoc(final ClassOrInterfaceDeclaration sourceClass) {
     return """
-        Fluent base class for {@link %s}.
+        Fluent interface for {@link %s}.
         <p>
         THIS IS A GENERATED FILE.
         <p>
@@ -115,73 +110,48 @@ public final class InterfaceBaseGenerator extends Generator {
       return false;
     }
 
-    // Make abstract.
+    // Make an interface.
 
-    outputBuilder.addClassModifier(Modifier.abstractModifier());
+    outputBuilder.setInterface(true);
 
-    // Extend `FluentFactory`.
+    // Extend `IFluentFactory`.
 
     outputBuilder.addExtendedType(new ClassOrInterfaceType()
-        .setName(Config.getFluentFactoryClass().getSimpleName())
+        .setName(Config.getIFluentFactoryClass().getSimpleName())
         .setTypeArguments(generateFluentTypeArguments(sourceClass)));
 
-    // Implement interface variant.
+    // Add extended types.
 
-    final String sourceClassSimpleName = sourceClass.getNameAsString();
+    for(final ClassOrInterfaceType sourceClassExtendedType : sourceClass.getExtendedTypes()) {
+      final String sourceClassExtendedTypeSimpleName = sourceClassExtendedType.getNameAsString();
 
-    outputBuilder.addImplementedType(new ClassOrInterfaceType()
-        .setName(generateInterfaceSimpleName(sourceClassSimpleName))
-        .setTypeArguments(generateTypeArguments(sourceClass)));
+      // We only need to implement generated interfaces.
+      if(!hasGeneratedClass(sourceClassExtendedTypeSimpleName)) {
+        continue;
+      }
 
-    // This code is not needed.
-    // I keep it here for reference.
-//    // Add implemented types.
-//
-//    for(final ClassOrInterfaceType sourceClassExtendedType : sourceClass.getExtendedTypes()) {
-//      final String sourceClassExtendedTypeSimpleName = sourceClassExtendedType.getNameAsString();
-//
-//      // We only need to implement generated interfaces.
-//      if(!hasGeneratedClass(sourceClassExtendedTypeSimpleName)) {
-//        continue;
-//      }
-//
-//      // Get the generated interface name.
-//
-//      final String generatedInterfaceSimpleName = generateInterfaceSimpleName(sourceClassExtendedTypeSimpleName);
-//
-//      // Add import.
-//
-//      outputBuilder.addImport(new ImportDeclaration(
-//          getGeneratedClassPackageName(sourceClassExtendedTypeSimpleName) + "." + generatedInterfaceSimpleName,
-//          false,
-//          false
-//      ));
-//
-//      // Implement the generated interface.
-//
-//      outputBuilder.addImplementedType(new ClassOrInterfaceType()
-//          .setName(generatedInterfaceSimpleName)
-//          .setTypeArguments(NodeUtils.of(
-//              generateFluentTypeArguments(sourceClass),
-//              sourceClassExtendedType.getTypeArguments()
-//                  .orElse(new NodeList<>())
-//          ))
-//      );
-//    }
+      // Get the generated interface name.
 
-    // Add constructor.
+      final String generatedInterfaceSimpleName = generateInterfaceSimpleName(sourceClassExtendedTypeSimpleName);
 
-    final String parameterName = StringUtils.uncapitalize(sourceClassSimpleName);
+      // Add import.
 
-    outputBuilder.addConstructor(new ConstructorDeclaration()
-        .setPublic(true)
-        .setName(generateClassSimpleName(sourceClass))
-        .addParameter(new Parameter()
-            .addModifier(Modifier.Keyword.FINAL)
-            .setType(getWrappedTypeParameterName())
-            .setName(parameterName))
-        .setBody(new BlockStmt()
-            .addStatement(String.format("super(%s);", parameterName))));
+      outputBuilder.addImport(new ImportDeclaration(
+          getGeneratedClassPackageName(sourceClassExtendedTypeSimpleName) + "." + generatedInterfaceSimpleName,
+          false,
+          false
+      ));
+
+      // Add extended type.
+
+      outputBuilder.addExtendedType(new ClassOrInterfaceType()
+          .setName(generatedInterfaceSimpleName)
+          .setTypeArguments(NodeUtils.of(
+              generateFluentTypeArguments(sourceClass),
+              sourceClassExtendedType.getTypeArguments()
+                  .orElse(null)
+          )));
+    }
 
     // Visit methods.
 
@@ -193,40 +163,45 @@ public final class InterfaceBaseGenerator extends Generator {
 
   @Override
   public Boolean visit(final MethodDeclaration sourceMethod, final OutputBuilder outputBuilder) {
-    // If the generated method name differs from the source method name, then
-    // we need to implement the source method.
+    // Skip non-public, static methods, object methods, and those that contain
+    // "$$".
 
     final String sourceMethodName = sourceMethod.getNameAsString();
-    final String generatedMethodName = generateFluentMethodName(
-        sourceMethodName,
-        NodeUtils.getParentClass(sourceMethod)
-            .orElseThrow()
-    );
 
-    if(sourceMethodName.equals(generatedMethodName)) {
+    if(!sourceMethod.isPublic() || sourceMethod.isStatic() || sourceMethodName.equals("equals") || sourceMethodName.equals("hashCode")
+        || sourceMethodName.equals("toString") || sourceMethodName.contains("$$")) {
       return false;
     }
 
-    final NodeList<Parameter> generatedMethodParameters = sourceMethod.getParameters().stream()
-        .map(sourceMethodParameter -> new Parameter()
-            .setFinal(true)
-            .setType(sourceMethodParameter.getTypeAsString())
-            .setName(sourceMethodParameter.getNameAsString()))
-        .collect(Collectors.toCollection(NodeList::new));
+    // Generate the method.
 
     outputBuilder.addMethod(new MethodDeclaration()
-        .setPublic(true)
-        .setType(sourceMethod.getTypeAsString())
-        .setName(sourceMethodName)
-        .setParameters(generatedMethodParameters)
-        .setBody(new BlockStmt()
-            .addStatement(String.format(
-                "return get().%s(%s);",
-                sourceMethodName,
-                generatedMethodParameters.stream()
-                    .map(NodeWithSimpleName::getNameAsString)
-                    .collect(Collectors.joining(", "))
-            ))));
+        .setDefault(true)
+        .setTypeParameters(NodeUtils.copyAll(sourceMethod.getTypeParameters()))
+        .setType(generateFluentMethodReturnType(
+            sourceMethod,
+            NodeUtils.getParentClass(sourceMethod)
+                .orElseThrow(),
+            outputBuilder
+        ))
+        .setName(generateFluentMethodName(
+            sourceMethod.getNameAsString(),
+            NodeUtils.getParentClass(sourceMethod)
+                .orElseThrow()
+        ))
+        .setParameters(sourceMethod.getParameters().stream()
+            .map(sourceMethodParameter -> new Parameter()
+                .setFinal(true)
+                .setType(resolveType(sourceMethodParameter.getType(), outputBuilder))
+                .setName(sourceMethodParameter.getNameAsString()))
+            .collect(Collectors.toCollection(NodeList::new)))
+        .setThrownExceptions(NodeUtils.copyAll(sourceMethod.getThrownExceptions()))
+        .setBody(generateFluentMethodBody(
+            sourceMethod,
+            NodeUtils.getParentClass(sourceMethod)
+                .orElseThrow(),
+            outputBuilder
+        )));
 
     return true;
   }

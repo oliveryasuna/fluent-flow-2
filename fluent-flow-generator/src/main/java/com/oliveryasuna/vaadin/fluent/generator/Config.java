@@ -105,6 +105,38 @@ public final class Config {
     return getInstance().arrayValueBreakClass;
   }
 
+  public static Class<ByteArrayValueBreak<?, ?>> getByteArrayValueBreakClass() {
+    return getInstance().byteArrayValueBreakClass;
+  }
+
+  public static Class<ShortArrayValueBreak<?, ?>> getShortArrayValueBreakClass() {
+    return getInstance().shortArrayValueBreakClass;
+  }
+
+  public static Class<IntArrayValueBreak<?, ?>> getIntArrayValueBreakClass() {
+    return getInstance().intArrayValueBreakClass;
+  }
+
+  public static Class<LongArrayValueBreak<?, ?>> getLongArrayValueBreakClass() {
+    return getInstance().longArrayValueBreakClass;
+  }
+
+  public static Class<FloatArrayValueBreak<?, ?>> getFloatArrayValueBreakClass() {
+    return getInstance().floatArrayValueBreakClass;
+  }
+
+  public static Class<DoubleArrayValueBreak<?, ?>> getDoubleArrayValueBreakClass() {
+    return getInstance().doubleArrayValueBreakClass;
+  }
+
+  public static Class<CharArrayValueBreak<?, ?>> getCharArrayValueBreakClass() {
+    return getInstance().charArrayValueBreakClass;
+  }
+
+  public static Class<BooleanArrayValueBreak<?, ?>> getBooleanArrayValueBreakClass() {
+    return getInstance().booleanArrayValueBreakClass;
+  }
+
   public static String getVaadinVersion() {
     return getInstance().vaadinVersion;
   }
@@ -138,6 +170,14 @@ public final class Config {
     this.booleanValueBreakClass = (Class<BooleanValueBreak<?, ?>>)Class.forName(properties.getProperty("name.BooleanValueBreak"));
     this.charValueBreakClass = (Class<CharValueBreak<?, ?>>)Class.forName(properties.getProperty("name.CharValueBreak"));
     this.arrayValueBreakClass = (Class<ArrayValueBreak<?, ?, ?>>)Class.forName(properties.getProperty("name.ArrayValueBreak"));
+    this.byteArrayValueBreakClass = (Class<ByteArrayValueBreak<?, ?>>)Class.forName(properties.getProperty("name.ByteArrayValueBreak"));
+    this.shortArrayValueBreakClass = (Class<ShortArrayValueBreak<?, ?>>)Class.forName(properties.getProperty("name.ShortArrayValueBreak"));
+    this.intArrayValueBreakClass = (Class<IntArrayValueBreak<?, ?>>)Class.forName(properties.getProperty("name.IntArrayValueBreak"));
+    this.longArrayValueBreakClass = (Class<LongArrayValueBreak<?, ?>>)Class.forName(properties.getProperty("name.LongArrayValueBreak"));
+    this.floatArrayValueBreakClass = (Class<FloatArrayValueBreak<?, ?>>)Class.forName(properties.getProperty("name.FloatArrayValueBreak"));
+    this.doubleArrayValueBreakClass = (Class<DoubleArrayValueBreak<?, ?>>)Class.forName(properties.getProperty("name.DoubleArrayValueBreak"));
+    this.booleanArrayValueBreakClass = (Class<BooleanArrayValueBreak<?, ?>>)Class.forName(properties.getProperty("name.BooleanArrayValueBreak"));
+    this.charArrayValueBreakClass = (Class<CharArrayValueBreak<?, ?>>)Class.forName(properties.getProperty("name.CharArrayValueBreak"));
 
     this.vaadinVersion = properties.getProperty("vaadin.version");
   }
@@ -170,6 +210,22 @@ public final class Config {
   private final Class<CharValueBreak<?, ?>> charValueBreakClass;
 
   private final Class<ArrayValueBreak<?, ?, ?>> arrayValueBreakClass;
+
+  private final Class<ByteArrayValueBreak<?, ?>> byteArrayValueBreakClass;
+
+  private final Class<ShortArrayValueBreak<?, ?>> shortArrayValueBreakClass;
+
+  private final Class<IntArrayValueBreak<?, ?>> intArrayValueBreakClass;
+
+  private final Class<LongArrayValueBreak<?, ?>> longArrayValueBreakClass;
+
+  private final Class<FloatArrayValueBreak<?, ?>> floatArrayValueBreakClass;
+
+  private final Class<DoubleArrayValueBreak<?, ?>> doubleArrayValueBreakClass;
+
+  private final Class<BooleanArrayValueBreak<?, ?>> booleanArrayValueBreakClass;
+
+  private final Class<CharArrayValueBreak<?, ?>> charArrayValueBreakClass;
 
   private final String vaadinVersion;
 

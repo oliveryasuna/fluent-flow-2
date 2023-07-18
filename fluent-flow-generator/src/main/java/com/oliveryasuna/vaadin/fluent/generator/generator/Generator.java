@@ -25,6 +25,7 @@ import com.github.javaparser.ast.comments.JavadocComment;
 import com.github.javaparser.ast.comments.LineComment;
 import com.github.javaparser.ast.expr.*;
 import com.github.javaparser.ast.modules.*;
+import com.github.javaparser.ast.nodeTypes.NodeWithSimpleName;
 import com.github.javaparser.ast.stmt.*;
 import com.github.javaparser.ast.type.*;
 import com.github.javaparser.ast.visitor.GenericVisitor;
@@ -206,7 +207,11 @@ public abstract class Generator implements GenericVisitor<Boolean, OutputBuilder
 
   protected abstract String generateJavadoc(final ClassOrInterfaceDeclaration sourceClass);
 
-  protected ClassOrInterfaceType generateFluentMethodReturnType(final MethodDeclaration sourceMethod, final ClassOrInterfaceDeclaration sourceClass) {
+  protected ClassOrInterfaceType generateFluentMethodReturnType(
+      final MethodDeclaration sourceMethod,
+      final ClassOrInterfaceDeclaration sourceClass,
+      final OutputBuilder outputBuilder
+  ) {
     final Type sourceReturnType = sourceMethod.getType();
 
     final ClassOrInterfaceType generatedReturnType;
@@ -249,16 +254,48 @@ public abstract class Generator implements GenericVisitor<Boolean, OutputBuilder
           new SimpleName(Config.getValueBreakClass().getSimpleName()),
           NodeUtils.of(
               generateFluentTypeArguments(sourceClass),
-              sourceReturnClassType
+              resolveType(sourceReturnClassType, outputBuilder)
           )
       );
-    } else if(sourceReturnType instanceof ArrayType) {
-      generatedReturnType = new ClassOrInterfaceType()
-          .setName(Config.getArrayValueBreakClass().getSimpleName())
-          .setTypeArguments(NodeUtils.of(
-              generateFluentTypeArguments(sourceClass),
-              NodeUtils.copy(sourceReturnType.getElementType())
-          ));
+    } else if(sourceReturnType instanceof final ArrayType sourceReturnArrayType) {
+      final Type sourceReturnArrayTypeElementType = sourceReturnArrayType.getElementType();
+
+      if(sourceReturnArrayTypeElementType instanceof final PrimitiveType sourceReturnTypeArrayTypePrimitiveElementType) {
+        final PrimitiveType.Primitive primitive = sourceReturnTypeArrayTypePrimitiveElementType.getType();
+
+        final Class<?> generatedReturnClass;
+
+        if(primitive == PrimitiveType.Primitive.BYTE) {
+          generatedReturnClass = Config.getByteArrayValueBreakClass();
+        } else if(primitive == PrimitiveType.Primitive.SHORT) {
+          generatedReturnClass = Config.getShortArrayValueBreakClass();
+        } else if(primitive == PrimitiveType.Primitive.INT) {
+          generatedReturnClass = Config.getIntArrayValueBreakClass();
+        } else if(primitive == PrimitiveType.Primitive.LONG) {
+          generatedReturnClass = Config.getLongArrayValueBreakClass();
+        } else if(primitive == PrimitiveType.Primitive.FLOAT) {
+          generatedReturnClass = Config.getFloatArrayValueBreakClass();
+        } else if(primitive == PrimitiveType.Primitive.DOUBLE) {
+          generatedReturnClass = Config.getDoubleArrayValueBreakClass();
+        } else if(primitive == PrimitiveType.Primitive.BOOLEAN) {
+          generatedReturnClass = Config.getBooleanArrayValueBreakClass();
+        } else if(primitive == PrimitiveType.Primitive.CHAR) {
+          generatedReturnClass = Config.getCharArrayValueBreakClass();
+        } else {
+          throw new IllegalStateException("Unknown primitive type: " + primitive);
+        }
+
+        generatedReturnType = new ClassOrInterfaceType()
+            .setName(generatedReturnClass.getSimpleName())
+            .setTypeArguments(generateFluentTypeArguments(sourceClass));
+      } else {
+        generatedReturnType = new ClassOrInterfaceType()
+            .setName(Config.getArrayValueBreakClass().getSimpleName())
+            .setTypeArguments(NodeUtils.of(
+                generateFluentTypeArguments(sourceClass),
+                resolveType(sourceReturnType.getElementType(), outputBuilder)
+            ));
+      }
     } else {
       throw new IllegalStateException("Unknown return type: " + sourceReturnType.getClass().getName());
     }
@@ -268,13 +305,44 @@ public abstract class Generator implements GenericVisitor<Boolean, OutputBuilder
     return generatedReturnType;
   }
 
-  public String generateFluentMethodName(final String sourceMethodName, final ClassOrInterfaceDeclaration sourceClass) {
+  protected String generateFluentMethodName(final String sourceMethodName, final ClassOrInterfaceDeclaration sourceClass) {
     if(sourceMethodName.equals("apply") && sourceClass.getExtendedTypes().stream()
         .anyMatch(extendedType -> extendedType.getNameAsString().equals("SerializableFunction"))) {
       return "apply_";
     }
 
+    if(sourceMethodName.equals("get")) {
+      return "get_";
+    }
+
     return sourceMethodName;
+  }
+
+  protected BlockStmt generateFluentMethodBody(
+      final MethodDeclaration sourceMethod,
+      final ClassOrInterfaceDeclaration sourceClass,
+      final OutputBuilder outputBuilder
+  ) {
+    if(sourceMethod.getType() instanceof VoidType) {
+      return new BlockStmt()
+          .addStatement(String.format("get().%s(%s);", sourceMethod.getNameAsString(), generateFluentMethodArgumentList(sourceMethod)))
+          // TODO: Add empty line.
+          .addStatement("return uncheckedThis();");
+    } else {
+      return new BlockStmt()
+          .addStatement(String.format(
+              "return new %s<>(uncheckedThis(), get().%s(%s));",
+              generateFluentMethodReturnType(sourceMethod, sourceClass, outputBuilder).getNameAsString(),
+              sourceMethod.getNameAsString(),
+              generateFluentMethodArgumentList(sourceMethod)
+          ));
+    }
+  }
+
+  protected String generateFluentMethodArgumentList(final MethodDeclaration sourceMethod) {
+    return sourceMethod.getParameters().stream()
+        .map(NodeWithSimpleName::getNameAsString)
+        .collect(Collectors.joining(", "));
   }
 
   /**
@@ -335,6 +403,35 @@ public abstract class Generator implements GenericVisitor<Boolean, OutputBuilder
     return getGeneratedClasses().stream()
         .map(Class::getSimpleName)
         .anyMatch(generatedClassName -> generatedClassName.equals(classSimpleName));
+  }
+
+  protected Type resolveType(final Type type, final OutputBuilder outputBuilder) {
+    if(!(type instanceof final ClassOrInterfaceType objectType)) {
+      return NodeUtils.copy(type);
+    }
+
+    final String typeName = objectType.getNameAsString();
+    final Class<?> sourceClass = outputBuilder.getSourceClass();
+
+    // Handle special cases.
+
+    final String sourceClassSimpleName = sourceClass.getSimpleName();
+
+    if(typeName.equals("Alignment") && (sourceClassSimpleName.equals("VerticalLayout") || sourceClassSimpleName.equals("HorizontalLayout"))) {
+      return new ClassOrInterfaceType()
+          .setName("FlexComponent.Alignment");
+    }
+
+    // Try to find inner class.
+
+    try {
+      Class.forName(sourceClass.getName() + "$" + typeName);
+
+      return new ClassOrInterfaceType()
+          .setName(sourceClassSimpleName + "." + typeName);
+    } catch(final ClassNotFoundException ignored) {
+      return NodeUtils.copy(type);
+    }
   }
 
   // Visitors
@@ -404,6 +501,14 @@ public abstract class Generator implements GenericVisitor<Boolean, OutputBuilder
     // Get the name of the import.
 
     final String sourceImportName = sourceImport.getNameAsString();
+
+    // If the import is static, just import it.
+
+    if(sourceImport.isStatic()) {
+      outputBuilder.addImport(new ImportDeclaration(sourceImportName, true, false));
+
+      return true;
+    }
 
     // Make sure that the import is accessible.
     // The import could be nested, so we replace the dots with dollar signs.

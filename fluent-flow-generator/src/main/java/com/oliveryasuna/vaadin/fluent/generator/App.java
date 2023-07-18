@@ -24,6 +24,7 @@ import com.github.javaparser.ast.CompilationUnit;
 import com.oliveryasuna.vaadin.fluent.generator.classfinder.ClassFinder;
 import com.oliveryasuna.vaadin.fluent.generator.generator.Generator;
 import com.oliveryasuna.vaadin.fluent.generator.generator.GeneratorResult;
+import com.oliveryasuna.vaadin.fluent.generator.generator.impl.ClassInterfaceGenerator;
 import com.oliveryasuna.vaadin.fluent.generator.generator.impl.InterfaceBaseGenerator;
 import com.oliveryasuna.vaadin.fluent.generator.generator.impl.InterfaceConcreteGenerator;
 import com.oliveryasuna.vaadin.fluent.generator.generator.impl.InterfaceInterfaceGenerator;
@@ -49,18 +50,30 @@ public final class App {
   public static void main(final String[] args) throws Exception {
     final ClassFinder classFinder = new ClassFinder();
     final Set<Class<?>> classes = classFinder.find(
-        "com.vaadin.flow",
-        true,
-        clazz -> !clazz.isAnnotation() && !clazz.isMemberClass() && Modifier.isPublic(clazz.getModifiers())
-    );
+            "com.vaadin.flow.component",
+            true,
+            clazz -> !clazz.isAnnotation() && !clazz.isMemberClass() && Modifier.isPublic(clazz.getModifiers())
+        ).stream()
+        .filter(clazz ->
+            // TODO: I need to fix these.
+            !clazz.getPackageName().startsWith("com.vaadin.flow.component.grid")
+                && !clazz.getPackageName().startsWith("com.vaadin.flow.component.treegrid")
+                && !clazz.getPackageName().startsWith("com.vaadin.flow.component.combobox"))
+        .collect(Collectors.toUnmodifiableSet());
 
-    final Set<Class<?>> interfaces = classes.stream()
+    final Set<Class<?>> sourceInterfaces = classes.stream()
         .filter(Class::isInterface)
         .collect(Collectors.toUnmodifiableSet());
 
-    generateClasses(interfaces, new InterfaceInterfaceGenerator(classes));
-    generateClasses(interfaces, new InterfaceBaseGenerator(classes));
-    generateClasses(interfaces, new InterfaceConcreteGenerator(classes));
+    generateClasses(sourceInterfaces, new InterfaceInterfaceGenerator(classes));
+    generateClasses(sourceInterfaces, new InterfaceBaseGenerator(classes));
+    generateClasses(sourceInterfaces, new InterfaceConcreteGenerator(classes));
+
+    final Set<Class<?>> sourceClasses = classes.stream()
+        .filter(clazz -> !clazz.isInterface() && !clazz.isEnum())
+        .collect(Collectors.toUnmodifiableSet());
+
+    generateClasses(sourceClasses, new ClassInterfaceGenerator(classes));
   }
 
   // Static fields

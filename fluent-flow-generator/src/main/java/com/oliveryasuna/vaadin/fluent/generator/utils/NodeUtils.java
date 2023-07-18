@@ -28,6 +28,7 @@ import com.oliveryasuna.commons.language.exception.UnsupportedInstantiationExcep
 
 import java.util.Arrays;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 public final class NodeUtils {
@@ -45,6 +46,7 @@ public final class NodeUtils {
     }
 
     return (NodeList<NODE>)Arrays.stream(nodeOrNodeLists)
+        .filter(Objects::nonNull)
         .map(NodeUtils::listOf)
         .flatMap(NodeList::stream)
         .filter(Objects::nonNull)
@@ -96,6 +98,18 @@ public final class NodeUtils {
     }
 
     return type;
+  }
+
+  public static Optional<ClassOrInterfaceDeclaration> getParentClass(final Node node) {
+    if(node == null) {
+      return Optional.empty();
+    }
+
+    if(node instanceof final ClassOrInterfaceDeclaration classOrInterfaceDeclaration) {
+      return Optional.of(classOrInterfaceDeclaration);
+    }
+
+    return getParentClass(node.getParentNode().orElse(null));
   }
 
   // Constructors

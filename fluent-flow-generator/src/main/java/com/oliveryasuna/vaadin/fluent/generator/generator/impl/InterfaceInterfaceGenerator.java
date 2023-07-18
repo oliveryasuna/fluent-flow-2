@@ -58,7 +58,6 @@ public final class InterfaceInterfaceGenerator extends Generator {
   // Generation
   //
 
-
   @Override
   protected String generateClassSimpleName(final ClassOrInterfaceDeclaration sourceClass) {
     return generateInterfaceSimpleName(sourceClass.getNameAsString());
@@ -120,6 +119,12 @@ public final class InterfaceInterfaceGenerator extends Generator {
     // Set to interface.
     outputBuilder.setInterface(true);
 
+    outputBuilder.addExtendedType(new ClassOrInterfaceType(
+        null,
+        new SimpleName(Config.getIFluentFactoryClass().getSimpleName()),
+        generateFluentTypeArguments(sourceClass)
+    ));
+
     // Add extends.
     sourceClass.getExtendedTypes().stream()
         .map(sourceClassExtendedType -> {
@@ -140,7 +145,7 @@ public final class InterfaceInterfaceGenerator extends Generator {
             generatedClassExtendedType.setTypeArguments(NodeUtils.of(
                 generateFluentTypeArguments(sourceClass),
                 sourceClassExtendedType.getTypeArguments()
-                    .orElse(new NodeList<>())
+                    .orElse(null)
             ));
           } else {
             // Import already added.
@@ -154,12 +159,6 @@ public final class InterfaceInterfaceGenerator extends Generator {
         })
         .forEachOrdered(outputBuilder::addExtendedType);
 
-    outputBuilder.addExtendedType(new ClassOrInterfaceType(
-        null,
-        new SimpleName(Config.getIFluentFactoryClass().getSimpleName()),
-        generateFluentTypeArguments(sourceClass)
-    ));
-
     sourceClass.getMethods()
         .forEach(sourceMethod -> sourceMethod.accept(this, outputBuilder));
 
@@ -168,11 +167,15 @@ public final class InterfaceInterfaceGenerator extends Generator {
 
   @Override
   public Boolean visit(final MethodDeclaration sourceMethod, final OutputBuilder outputBuilder) {
-    if(sourceMethod.isStatic()) {
+    final String sourceMethodName = sourceMethod.getNameAsString();
+
+    if(sourceMethod.isStatic() || sourceMethodName.equals("equals") || sourceMethodName.equals("hashCode") || sourceMethodName.equals("toString")
+        || sourceMethodName.contains("$$")) {
       return false;
     }
 
-    final String sourceMethodName = sourceMethod.getNameAsString();
+    // TODO: For a better approach, see `ClassInterfaceGenerator`.
+
     final NodeList<Parameter> sourceMethodParameters = sourceMethod.getParameters();
 
     final MethodDeclaration generatedMethod = new MethodDeclaration();
@@ -181,7 +184,8 @@ public final class InterfaceInterfaceGenerator extends Generator {
         sourceMethod,
         sourceMethod.getParentNode()
             .map(ClassOrInterfaceDeclaration.class::cast)
-            .orElseThrow()
+            .orElseThrow(),
+        outputBuilder
     );
     final NodeList<Parameter> generatedMethodParameters = new NodeList<>();
     final StringBuilder generatedMethodArgumentList = new StringBuilder();
