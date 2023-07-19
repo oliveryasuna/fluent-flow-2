@@ -34,7 +34,8 @@
   </parent>
 
   <groupId>org.vaadin.addons.oliveryasuna</groupId>
-  <artifactId>fluent-flow-2</artifactId>
+  <artifactId>fluent-flow</artifactId>
+  <version>2.0.0-beta1</version>
   <packaging>jar</packaging>
 
   <properties/>
@@ -101,7 +102,7 @@
   ==== Details
   ==================================================-->
 
-  <name>Fluent Flow 2</name>
+  <name>Fluent Flow</name>
   <description/> <!-- TODO. -->
   <url>https://github.com/oliveryasuna/fluent-flow-2</url>
   <inceptionYear>2023</inceptionYear>
